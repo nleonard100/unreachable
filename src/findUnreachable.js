@@ -3,18 +3,26 @@ const jsdom = require("jsdom");
 const { JSDOM } = jsdom;
 const fs = require("fs");
 
-const sitemapStatus = require('./sitemap-refinement-status.json');
 
 (async () => {
     const bc = "?bc=HL";
 
+
+    if (process.argv.length === 2) {
+        console.error('Please provide the file name under the input directory.');
+        process.exit(1);
+    }
+
+    const statusFilePath = process.argv[2];
+
+    const sitemapStatus = require("../input/" + statusFilePath);
 
 
     const unreachableUrls = {};
     for (const [path, v] of Object.entries(sitemapStatus)) {
         if (v.valid) {
             let reportLine;
-            let reportBlock = {path:'', valid: true, reason: 'unreachable'}
+            let reportBlock = { path: '', valid: true, reason: 'unreachable' }
 
             //console.log(path) 
             try {
@@ -38,7 +46,6 @@ const sitemapStatus = require('./sitemap-refinement-status.json');
                         reportBlock.reason = "invalid status " + resp.status + " " + resp.statusText;
 
                     }
-                    //fs.appendFileSync(unreachableDir + loc + "unreachable.json", reportLine);
 
                 } else {
                     const dom = new JSDOM(await resp.text());
@@ -60,7 +67,7 @@ const sitemapStatus = require('./sitemap-refinement-status.json');
                                     reportBlock.path = path;
                                     reportBlock.valid = false;
                                     reportBlock.reason = "No Index set in Robots";
-            
+
                                 }
 
                             }
@@ -69,7 +76,7 @@ const sitemapStatus = require('./sitemap-refinement-status.json');
                     }
                 }
             } catch (e) {
-                
+
                 reportLine = path + "\tERROR\t\t\t\t" + e;
                 reportBlock.path = path;
                 reportBlock.valid = false;
@@ -79,10 +86,10 @@ const sitemapStatus = require('./sitemap-refinement-status.json');
             if (reportLine) {
                 console.log(reportLine);
             }
-            if(!reportBlock.valid){
+            if (!reportBlock.valid) {
                 unreachableUrls[path] = reportBlock;
                 console.log(JSON.stringify(reportBlock));
-                fs.writeFileSync('../output/unreachableStatus.json', JSON.stringify(unreachableUrls, null, 2));
+                fs.writeFileSync(__dirname + '/../output/unreachableStatus.json', JSON.stringify(unreachableUrls, null, 2));
             }
 
         }
